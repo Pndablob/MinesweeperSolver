@@ -87,6 +87,7 @@ class MinesweeperEnv:
 
         for x, y in randList:
             self.tiles[x][y].num = -1
+            self.tiles[x][y].configure(text='*')
             print(f"set {x} {y} to mine")
 
     def setNumbers(self):
@@ -112,11 +113,13 @@ class MinesweeperEnv:
                     mb.num = count
                     mb.showNumber()
 
+    """
     def showMines(self):
         for x in range(self.LENGTH):
             for y in range(self.HEIGHT):
                 if self.tiles[x][y].isMine():
                     self.tiles[x][y].configure(text="*")
+                    """
 
     # calculate 3BV of the current minesweeper board
     def calcTBV(self):
@@ -142,16 +145,16 @@ class MinesweeperEnv:
 
     def setup(self):
         self.placeMines()
-        #self.setNumbers()    # somehow causes error in 3bv calculation
         self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
+        self.setNumbers()    # somehow causes error in 3bv calculation
 
-        self.showMines()
+        # self.showMines()
 
     def run(self):
         self.setup()
 
         for r in self.tiles:
-            print([mb.num for mb in r])
+            print(np.matrix([mb.num for mb in r]))
 
         print([[mb.num for mb in self.tiles[y]] for y in range(len(self.tiles))])
 
