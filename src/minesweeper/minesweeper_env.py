@@ -13,6 +13,7 @@ class MineButton(tk.Button):
         self.parent = parent
         self.isFlagged = False
         self.isRevealed = False
+        self.isMarked = False
         self.num = 0
 
     def showNumber(self):
@@ -123,7 +124,7 @@ class MinesweeperEnv:
 
     # calculate 3BV of the current minesweeper board
     def calcTBV(self):
-        # Convert the board to a NumPy array for easier manipulation
+        """# Convert the board to a NumPy array for easier manipulation
         board = np.array([[mb.num for mb in self.tiles[y]] for y in range(len(self.tiles))])
         rows, cols = board.shape
         # Initialize the 3BV counter to zero
@@ -134,21 +135,49 @@ class MinesweeperEnv:
                 # If the cell is a mine, skip it
                 if self.tiles[row][col].isMine():
                     continue
-                # If the cell is already revealed, skip it
-                if self.tiles[row][col].isRevealed:
-                    continue
                 # If the cell has no mines in its neighborhood, click it and add 1 to the 3BV counter
                 if board[row - 1:row + 2, col - 1:col + 2].sum() == 0:
+                    tbv += 1"""
+        tbv = 0
+
+        for x in range(self.LENGTH):
+            for y in range(self.HEIGHT):
+                mb = self.tiles[x][y]
+                if mb.num == 0:
+                    if mb.isMarked:
+                        continue
+
+                    mb.isMarked = True
                     tbv += 1
-                    board[row, col] = 1
+
+                    self.floodMark(x, y)
+
+        for x in range(self.LENGTH):
+            for y in range(self.HEIGHT):
+                mb = self.tiles[x][y]
+                if not mb.isMarked:
+                    tbv += 1
+
         return tbv
+
+    def floodMark(self, x, y):
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if 0 <= x + dx < self.LENGTH and 0 <= y + dy < self.HEIGHT:
+                    if dx == 0 and dy == 0:
+                        continue
+
+                    mb = self.tiles[x+dx][y+dy]
+                    if mb.num == 0:
+                        mb.isMarked = True
+                        self.floodMark(x + dx, y + dy)
 
     def setup(self):
         self.placeMines()
         self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
         self.setNumbers()    # somehow causes error in 3bv calculation
 
-        # self.showMines()
+        # self.showMines()z
 
     def run(self):
         self.setup()
