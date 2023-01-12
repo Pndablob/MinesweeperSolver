@@ -3,7 +3,6 @@ import tkinter.ttk as ttk
 
 import numpy as np
 import random
-import math
 
 
 # Minesweeper button extending tk button
@@ -73,10 +72,10 @@ class MinesweeperEnv:
         # button height: 38.8125 pixels
 
     def leftClicked(self, x, y):
-        print(f"button at ({x}, {y}) was clicked")
+        # print(f"button at ({x}, {y}) was clicked")
 
-        mb = self.tiles[x][y]
-        print(mb)
+        # mb = self.tiles[x][y]
+        # print(mb)
         """if (not mb.isClicked or not mb.isFlagged) and not mb.isMine:
             mb.configure(background='#ffffff')
             mb.showNumber()
@@ -114,7 +113,7 @@ class MinesweeperEnv:
                     mb.num = count
                     mb.showNumber()
 
-    """
+        """
     def showMines(self):
         for x in range(self.LENGTH):
             for y in range(self.HEIGHT):
@@ -138,6 +137,24 @@ class MinesweeperEnv:
                 # If the cell has no mines in its neighborhood, click it and add 1 to the 3BV counter
                 if board[row - 1:row + 2, col - 1:col + 2].sum() == 0:
                     tbv += 1"""
+
+        """
+        Count3BV:
+    
+        For each empty ("0") cell C:
+            If C has already been marked, continue.
+            Mark C. Add 1 to your 3BV count.
+            Call FloodFillMark(C).
+        For each non-marked, non-mine cell:
+            Add 1 to your 3BV count.
+    
+        FloodFillMark(C):
+    
+        For every non-marked neighbor N of C (diagonal and orthogonal):
+            Mark N.
+            If N is an empty cell, call FloodFillMark(N).
+        """
+
         tbv = 0
 
         for x in range(self.LENGTH):
@@ -155,7 +172,7 @@ class MinesweeperEnv:
         for x in range(self.LENGTH):
             for y in range(self.HEIGHT):
                 mb = self.tiles[x][y]
-                if not mb.isMarked:
+                if not mb.isMarked and not mb.isMine():
                     tbv += 1
 
         return tbv
@@ -164,10 +181,12 @@ class MinesweeperEnv:
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
                 if 0 <= x + dx < self.LENGTH and 0 <= y + dy < self.HEIGHT:
+                    mb = self.tiles[x + dx][y + dy]
+
+                    if mb.isMarked:
+                        continue
                     if dx == 0 and dy == 0:
                         continue
-
-                    mb = self.tiles[x+dx][y+dy]
                     if mb.num == 0:
                         mb.isMarked = True
                         self.floodMark(x + dx, y + dy)
