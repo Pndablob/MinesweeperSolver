@@ -25,9 +25,9 @@ class MineButton(tk.Button):
 class MinesweeperEnv:
     def __init__(self, master=None):
         # game
-        self.MINES = 40
-        self.LENGTH = 16
-        self.HEIGHT = 16
+        self.MINES = 5
+        self.LENGTH = 4
+        self.HEIGHT = 4
 
         self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
 
@@ -90,8 +90,10 @@ class MinesweeperEnv:
         randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
 
         for x, y in randList:
-            self.tiles[x][y].num = -1
-            self.tiles[x][y].configure(text='*')
+            mb = self.tiles[x][y]
+            mb.num = -1
+            mb.configure(text='*')
+            mb.isMarked = True
             print(f"set {x} {y} to mine")
 
     def setNumbers(self):
@@ -156,33 +158,32 @@ class MinesweeperEnv:
             Mark N.
             If N is an empty cell, call FloodFillMark(N).
         """
-        l1 = []
-
         tbv = 0
 
+        # error in function
         for x, y in self.TILE_COORDINATES:
             mb = self.tiles[x][y]
+            if mb.isMine():
+                mb.isMarked = True
+                print(f"mine marked ({x}, {y})")
+
             if mb.num == 0:
                 if mb.isMarked:
                     continue
                 else:
-                    print(f"({x}, {y}) counted for 3bv")
+                    mb.isMarked = True
+                    print(f"marked ({x}, {y})")
                     tbv += 1
-                    l1.append([x, y])
+                    print(f"({x}, {y}) flooded, counted for 3bv")
                     self.floodMark(x, y)
 
         for x, y in self.TILE_COORDINATES:
             mb = self.tiles[x][y]
             if not mb.isMarked and not mb.isMine():
-                print(f"({x}, {y}) counted for 3bv")
+                print(f"({x}, {y}) not mine, not marked counted for 3bv")
                 tbv += 1
-                l1.append([x, y])
 
-        print(len(l1))
-        l2 = [x for x in l1 if l1.count(x) > 1]
-        print(len(l2))
-
-        for x, y in self.TILE_COORDINATES:
+        """for x, y in self.TILE_COORDINATES:
             c = 0
             if self.tiles[x][y].num == 0:
                 continue
@@ -190,25 +191,21 @@ class MinesweeperEnv:
                 if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
                     mb = self.tiles[x+dx][y+dy]
                     if mb.num == 0:
-                        c += 1
-
-            if c > 0:
-                tbv -= 1
+                        c += 1"""
 
         return tbv
 
     def floodMark(self, x, y):
         for dx, dy in self.ADJACENT_TILES:
             if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
-                print(f"({x}, {y}) --> ({x + dx}, {y + dy})")
                 mb = self.tiles[x + dx][y + dy]
 
-                if (dx == 0 and dy == 0) or mb.isMarked:
+                if mb.isMarked:
                     continue
-                elif not mb.isMarked:
-                    mb.isMarked = True
                 elif mb.num == 0:
-                    self.floodMark(x + dx, y + dy)
+                    print(f"({x}, {y}) --> ({x + dx}, {y + dy})")
+                    if mb.num == 0:
+                        self.floodMark(x + dx, y + dy)
 
     def setup(self):
         self.placeMines()
