@@ -25,9 +25,9 @@ class MineButton(tk.Button):
 class MinesweeperEnv:
     def __init__(self, master=None):
         # game
-        self.MINES = 5
-        self.LENGTH = 4
-        self.HEIGHT = 4
+        self.MINES = 40
+        self.LENGTH = 16
+        self.HEIGHT = 16
 
         self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
 
@@ -127,92 +127,66 @@ class MinesweeperEnv:
 
     # calculate 3BV of the current minesweeper board
     def calcTBV(self):
-        """# Convert the board to a NumPy array for easier manipulation
-        board = np.array([[mb.num for mb in self.tiles[y]] for y in range(len(self.tiles))])
-        rows, cols = board.shape
-        # Initialize the 3BV counter to zero
-        tbv = 0
-        # Loop through all the cells in the board
-        for row in range(rows):
-            for col in range(cols):
-                # If the cell is a mine, skip it
-                if self.tiles[row][col].isMine():
-                    continue
-                # If the cell has no mines in its neighborhood, click it and add 1 to the 3BV counter
-                if board[row - 1:row + 2, col - 1:col + 2].sum() == 0:
-                    tbv += 1"""
-
         """
         Count3BV:
-    
-        For each empty ("0") cell C:
-            If C has already been marked, continue.
-            Mark C. Add 1 to your 3BV count.
-            Call FloodFillMark(C).
-        For each non-marked, non-mine cell:
-            Add 1 to your 3BV count.
+            For each empty ("0") cell C:
+                If C has already been marked, continue.
+                Mark C. Add 1 to your 3BV count.
+                Call FloodFillMark(C).
+            For each non-marked, non-mine cell:
+                Add 1 to your 3BV count.
     
         FloodFillMark(C):
-    
-        For every non-marked neighbor N of C (diagonal and orthogonal):
-            Mark N.
-            If N is an empty cell, call FloodFillMark(N).
+            For every non-marked neighbor N of C (diagonal and orthogonal):
+                Mark N.
+                If N is an empty cell, call FloodFillMark(N).
         """
+
         tbv = 0
 
-        # error in function
         for x, y in self.TILE_COORDINATES:
             mb = self.tiles[x][y]
-            if mb.isMine():
-                mb.isMarked = True
-                print(f"mine marked ({x}, {y})")
-
-            if mb.num == 0:
-                if mb.isMarked:
-                    continue
-                else:
-                    mb.isMarked = True
-                    print(f"marked ({x}, {y})")
-                    tbv += 1
-                    print(f"({x}, {y}) flooded, counted for 3bv")
-                    self.floodMark(x, y)
-
-        for x, y in self.TILE_COORDINATES:
-            mb = self.tiles[x][y]
-            if not mb.isMarked and not mb.isMine():
-                print(f"({x}, {y}) not mine, not marked counted for 3bv")
-                tbv += 1
-
-        """for x, y in self.TILE_COORDINATES:
-            c = 0
-            if self.tiles[x][y].num == 0:
+            # if already marked, continue
+            if mb.isMarked:
                 continue
-            for dx, dy in self.ADJACENT_TILES:
-                if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
-                    mb = self.tiles[x+dx][y+dy]
-                    if mb.num == 0:
-                        c += 1"""
+            # if mine, mark and continue
+            elif mb.isMine():
+                mb.isMarked = True
+                continue
+            # if an empty cell, mark, count for 3BV, and floodflill
+            elif mb.num == 0:
+                mb.isMarked = True
+                tbv += 1
+                self.floodMark(x, y)
+
+        for x, y in self.TILE_COORDINATES:
+            mb = self.tiles[x][y]
+            # for each non-marked, non-mine cell add 1 to 3BV
+            if not mb.isMarked:
+                tbv += 1
 
         return tbv
 
     def floodMark(self, x, y):
+        # check adjacent tiles
         for dx, dy in self.ADJACENT_TILES:
+            # prevent out of bounds
             if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
                 mb = self.tiles[x + dx][y + dy]
 
                 if mb.isMarked:
                     continue
-                elif mb.num == 0:
-                    print(f"({x}, {y}) --> ({x + dx}, {y + dy})")
-                    if mb.num == 0:
-                        self.floodMark(x + dx, y + dy)
+
+                mb.isMarked = True
+                # if adjacent empty tile, recurse
+                if mb.num == 0:
+                    self.floodMark(x + dx, y + dy)
 
     def setup(self):
         self.placeMines()
-        self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
         self.setNumbers()
 
-        # self.showMines()
+        self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
 
     def run(self):
         self.setup()
