@@ -4,6 +4,7 @@ import tkinter.ttk as ttk
 import numpy as np
 import random
 import json
+import time
 
 ADJACENT_TILES = [[-1, -1], [0, -1], [-1, 0], [1, -1], [-1, 1], [0, 1], [1, 0], [1, 1]]
 
@@ -29,7 +30,11 @@ class MineButton(tk.Button):
         text = ""
         if self.num == -1:
             text = "*"
-        elif 0 < self.num <= 8:
+        elif 1 <= self.num <= 8:
+            # hex rgb colors for numbers
+            buttonColors = ["#2904cf", "#077023", "#db1507", "#180b8c", "#801a16", "#11a697", "#000000", "#7f828a"]
+            self.configure(fg=buttonColors[self.num-1])
+
             text = f"{self.num}"
         self.configure(text=text)
 
@@ -50,11 +55,15 @@ class MineButton(tk.Button):
 class MinesweeperEnv:
     def __init__(self, master=None):
         # game variables
-        self.MINES = 40
-        self.LENGTH = 16
-        self.HEIGHT = 16
+        self.MINES = 24
+        self.LENGTH = 5
+        self.HEIGHT = 5
+
         self.revealed = 0
+        self.tbv = 0
         self.mineCount = self.MINES
+        self.gameStarted = False
+        self.time = 0
 
         self.TILE_COORDINATES = [[x, y] for x in range(self.LENGTH) for y in range(self.HEIGHT)]
 
@@ -72,12 +81,14 @@ class MinesweeperEnv:
         self.statsFrame = tk.LabelFrame(self.topLevel, font='{Ariel} 14 {bold}', text='Statistics')
         self.statsFrame.pack(side='right', expand=True, fill='both', padx=20)
 
+        self.timeLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='Time:', anchor='w', justify='left')
+        self.timeLabel.grid(row=0, column=0, sticky='W')
         self.TBVLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='3BV:', anchor='w', justify='left')
-        self.TBVLabel.grid(row=0, column=0)
+        self.TBVLabel.grid(row=1, column=0, sticky='W')
         self.TBVPerSecLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='3BV/sec:', anchor='w', justify='left')
-        self.TBVPerSecLabel.grid(row=1, column=0)
+        self.TBVPerSecLabel.grid(row=2, column=0, sticky='W')
         self.efficiencyLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='Efficiency:', anchor='w', justify='left')
-        self.efficiencyLabel.grid(row=2, column=0)
+        self.efficiencyLabel.grid(row=3, column=0, sticky='W')
 
         # initialize mines as MineButton
         for x in range(0, self.LENGTH):
@@ -99,6 +110,10 @@ class MinesweeperEnv:
         return lambda Button: self.rightClicked(self.tiles[x][y])
 
     def leftClicked(self, mb: MineButton):
+        if not self.gameStarted:
+            self.gameStarted = True
+            self.time = time.time_ns()
+
         if not mb.isFlagged:
             if not mb.isRevealed and not mb.isMine():
                 mb.configure(background='#ffffff')
@@ -141,6 +156,10 @@ class MinesweeperEnv:
                         self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
 
     def rightClicked(self, mb: MineButton):
+        if not self.gameStarted:
+            self.gameStarted = True
+            self.time = time.time_ns()
+
         if not mb.isRevealed and not mb.isFlagged and self.mineCount > 0:
             mb.flagTile()
             self.mineCount -= 1
@@ -155,7 +174,6 @@ class MinesweeperEnv:
             mb = self.tiles[x][y]
             mb.num = -1
             mb.isMarked = True
-            print(f"set {x} {y} to mine")
 
     def setNumbers(self):
         for x, y in self.TILE_COORDINATES:
@@ -235,7 +253,9 @@ class MinesweeperEnv:
         self.placeMines()
         self.setNumbers()
 
-        self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
+        self.tbv = self.calcTBV()
+
+        self.TBVLabel.configure(text=f"3BV: {str(self.tbv)}")
 
     def resetEnv(self):
         pass
@@ -244,6 +264,10 @@ class MinesweeperEnv:
         return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
 
     def gameEnd(self, won: bool):
+        # gather stats
+        # tbv
+        self.time = time.time_ns() - self.time
+
         # game end condition
         if won:
             # store game stats as csv in gamesWon.json
