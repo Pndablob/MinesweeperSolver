@@ -4,22 +4,41 @@ import tkinter.ttk as ttk
 import numpy as np
 import random
 
+ADJACENT_TILES = [[-1, -1], [0, -1], [-1, 0], [1, -1], [-1, 1], [0, 1], [1, 0], [1, 1]]
+
+BUTTON_CLICK = "<ButtonRelease-1>"
+BUTTON_FLAG = "<ButtonRelease-3>"
+
 
 # Minesweeper button extending tk button
 class MineButton(tk.Button):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, x, y, *args, **kwargs):
         tk.Button.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-        self.isFlagged = False
-        self.isRevealed = False
-        self.isMarked = False
+
         self.num = 0
+        self.x = x
+        self.y = y
+
+        self.isFlagged = False
+        self.isMarked = False
+        self.isRevealed = False
 
     def showNumber(self):
-        self.configure(text=f'{self.num}')
+        text = ""
+        if self.num == -1:
+            text = "*"
+        elif 0 < self.num <= 8:
+            text = f"{self.num}"
+        self.configure(text=text)
 
     def isMine(self):
         return self.num == -1
+
+    def revealTile(self):
+        self.configure(background='#ffffff')
+        self.showNumber()
+        self.isRevealed = True
 
 
 class MinesweeperEnv:
@@ -29,11 +48,11 @@ class MinesweeperEnv:
         self.LENGTH = 16
         self.HEIGHT = 16
 
+        self.revealed = 0
+
         self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
 
         self.TILE_COORDINATES = [[x, y] for x in range(self.LENGTH) for y in range(self.HEIGHT)]
-
-        self.ADJACENT_TILES = [[-1, -1], [0, -1], [-1, 0], [1, -1], [-1, 1], [0, 1], [1, 0], [1, 1]]
 
         # main ui
         self.topLevel = ttk.Frame(master)
@@ -54,37 +73,53 @@ class MinesweeperEnv:
         self.efficiencyLabel = ttk.Label(self.statsFrame, text='Efficiency:', anchor='w', justify='left')
         self.efficiencyLabel.grid(row=2, column=0)
 
+        # initialize mines as MineButton
         for x in range(0, self.LENGTH):
             for y in range(0, self.HEIGHT):
-                b = MineButton(self.gridFrame)
-                b.configure(default='normal', font='{Arial} 9 {bold}', text='', width=5, height=2, compound='center', padx=0, pady=0)
+                b = MineButton(self.gridFrame, x, y)
+                b.configure(default='normal', font='{Arial} 9 {bold}', text='', width=5, height=2, compound='center',
+                            padx=0, pady=0)
                 b.grid(row=x, column=y)
 
-                b.bind('<ButtonRelease-1>', self.leftClicked(x, y))
+                b.bind(BUTTON_CLICK, self.leftClickWrapper(x, y))
+                b.bind(BUTTON_FLAG, self.rightClickWrapper(x, y))
 
                 self.tiles[x][y] = b
 
-    def leftClickHandler(self, event):
-        x = round(event.x / 42.9375)
-        y = round(event.y / 38.8125)
-
-        print(f"button clicked at {x}, {y}")
-
-        self.leftClicked(x, y)
+    def leftClickWrapper(self, x, y):
+        return lambda Button: self.leftClicked(self.tiles[x][y])
 
         # button width: 42.9375 pixels
         # button height: 38.8125 pixels
 
-    def leftClicked(self, x, y):
-        # print(f"button at ({x}, {y}) was clicked")
+    def leftClicked(self, mb: MineButton):
+        print(f"({mb.x}, {mb.y}) left clicked")
 
-        # mb = self.tiles[x][y]
-        # print(mb)
-        """if (not mb.isClicked or not mb.isFlagged) and not mb.isMine:
-            mb.configure(background='#ffffff')
-            mb.showNumber()
-            mb.isClicked = True
-        """
+        if not mb.isFlagged:
+            if not mb.isRevealed and not mb.isMine():
+                mb.revealTile()
+
+                # chord surrounding tiles
+                for dx, dy in ADJACENT_TILES:
+                    if 0 <= mb.x + dx < self.LENGTH and 0 <= mb.y + dy < self.HEIGHT:
+                        if mb.num == 0:
+                            self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
+
+                self.revealed += 1
+                if self.won():
+                    self.gameEnd(True)
+            elif mb.isMine():
+                if self.revealed == 0:
+                    # first click safety
+                    pass
+                else:
+                    mb.revealTile()
+
+    def rightClickWrapper(self, x, y):
+        return lambda Button: self.rightClicked(self.tiles[x][y])
+
+    def rightClicked(self, mb: MineButton):
+        print(f"({mb.x}, {mb.y}) right clicked")
 
     def placeMines(self):
         randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
@@ -92,7 +127,6 @@ class MinesweeperEnv:
         for x, y in randList:
             mb = self.tiles[x][y]
             mb.num = -1
-            mb.configure(text='*')
             mb.isMarked = True
             print(f"set {x} {y} to mine")
 
@@ -105,17 +139,21 @@ class MinesweeperEnv:
 
             # Count the number of mines in the adjacent cells
             count = 0
-            for dx, dy in self.ADJACENT_TILES:
-                if dx == 0 and dy == 0:
-                    # Skip the current cell
-                    continue
+            for dx, dy in ADJACENT_TILES:
                 if 0 <= x + dx < self.LENGTH and 0 <= y + dy < self.HEIGHT:
                     if self.tiles[x + dx][y + dy].isMine():
                         count += 1
 
             if count != 0:
                 mb.num = count
-                mb.showNumber()
+                #mb.showNumber()
+
+    def won(self):
+        return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
+
+    def gameEnd(self, won: bool):
+        # game end condition
+        pass
 
         """
     def showMines(self):
@@ -169,7 +207,7 @@ class MinesweeperEnv:
 
     def floodMark(self, x, y):
         # check adjacent tiles
-        for dx, dy in self.ADJACENT_TILES:
+        for dx, dy in ADJACENT_TILES:
             # prevent out of bounds
             if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
                 mb = self.tiles[x + dx][y + dy]
