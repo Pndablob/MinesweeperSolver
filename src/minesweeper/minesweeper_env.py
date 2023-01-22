@@ -32,27 +32,32 @@ class MineButton(tk.Button):
             text = f"{self.num}"
         self.configure(text=text)
 
+        self.isRevealed = True
+
+    def flagTile(self):
+        if not self.isFlagged:
+            self.isFlagged = True
+            self.configure(fg='#ff0000', text="Flag")
+        else:
+            self.isFlagged = False
+            self.configure(fg="#000000", text="")
+
     def isMine(self):
         return self.num == -1
-
-    def revealTile(self):
-        self.configure(background='#ffffff')
-        self.showNumber()
-        self.isRevealed = True
 
 
 class MinesweeperEnv:
     def __init__(self, master=None):
-        # game
+        # game variables
         self.MINES = 40
         self.LENGTH = 16
         self.HEIGHT = 16
-
         self.revealed = 0
-
-        self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
+        self.mineCount = self.MINES
 
         self.TILE_COORDINATES = [[x, y] for x in range(self.LENGTH) for y in range(self.HEIGHT)]
+
+        self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
 
         # main ui
         self.topLevel = ttk.Frame(master)
@@ -63,14 +68,14 @@ class MinesweeperEnv:
         self.gridFrame.pack(side='left')
 
         # stats ui
-        self.statsFrame = tk.LabelFrame(self.topLevel, font='{Ariel} 12 {bold}', text='Statistics')
+        self.statsFrame = tk.LabelFrame(self.topLevel, font='{Ariel} 14 {bold}', text='Statistics')
         self.statsFrame.pack(side='right', expand=True, fill='both', padx=20)
 
-        self.TBVLabel = ttk.Label(self.statsFrame, text='3BV:', anchor='w', justify='left')
+        self.TBVLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='3BV:', anchor='w', justify='left')
         self.TBVLabel.grid(row=0, column=0)
-        self.TBVPerSecLabel = ttk.Label(self.statsFrame, text='3BV/sec:', anchor='w', justify='left')
+        self.TBVPerSecLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='3BV/sec:', anchor='w', justify='left')
         self.TBVPerSecLabel.grid(row=1, column=0)
-        self.efficiencyLabel = ttk.Label(self.statsFrame, text='Efficiency:', anchor='w', justify='left')
+        self.efficiencyLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='Efficiency:', anchor='w', justify='left')
         self.efficiencyLabel.grid(row=2, column=0)
 
         # initialize mines as MineButton
@@ -92,7 +97,8 @@ class MinesweeperEnv:
     def leftClicked(self, mb: MineButton):
         if not mb.isFlagged:
             if not mb.isRevealed and not mb.isMine():
-                mb.revealTile()
+                mb.configure(background='#ffffff')
+                mb.showNumber()
 
                 # chord surrounding tiles
                 for dx, dy in ADJACENT_TILES:
@@ -109,7 +115,8 @@ class MinesweeperEnv:
                     # first click safety
                     pass
                 else:
-                    mb.revealTile()
+                    mb.configure(background='#ff0000')
+                    mb.showNumber()
                     # lose
                     self.gameEnd(False)
 
@@ -118,6 +125,12 @@ class MinesweeperEnv:
 
     def rightClicked(self, mb: MineButton):
         print(f"({mb.x}, {mb.y}) right clicked")
+        if not mb.isRevealed and not mb.isFlagged and self.mineCount > 0:
+            mb.flagTile()
+            self.mineCount -= 1
+        elif mb.isFlagged:
+            mb.flagTile()
+            self.mineCount += 1
 
     def won(self):
         return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
