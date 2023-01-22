@@ -3,6 +3,7 @@ import tkinter.ttk as ttk
 
 import numpy as np
 import random
+import json
 
 ADJACENT_TILES = [[-1, -1], [0, -1], [-1, 0], [1, -1], [-1, 1], [0, 1], [1, 0], [1, 1]]
 
@@ -122,6 +123,8 @@ class MinesweeperEnv:
                     mb.showNumber()
                     # lose
                     self.gameEnd(False)
+
+        # ERROR
         # chording
         elif mb.isRevealed:
             print("attempted chording")
@@ -144,13 +147,6 @@ class MinesweeperEnv:
         elif mb.isFlagged:
             mb.flagTile()
             self.mineCount += 1
-
-    def won(self):
-        return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
-
-    def gameEnd(self, won: bool):
-        # game end condition
-        pass
 
     def placeMines(self):
         randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
@@ -178,7 +174,6 @@ class MinesweeperEnv:
             if count != 0:
                 mb.num = count
 
-    # calculate 3BV of the current minesweeper board
     def calcTBV(self):
         """
         Count3BV:
@@ -188,7 +183,7 @@ class MinesweeperEnv:
                 Call FloodFillMark(C).
             For each non-marked, non-mine cell:
                 Add 1 to your 3BV count.
-    
+
         FloodFillMark(C):
             For every non-marked neighbor N of C (diagonal and orthogonal):
                 Mark N.
@@ -220,6 +215,7 @@ class MinesweeperEnv:
 
         return tbv
 
+    # calculate 3BV of the current minesweeper board
     def floodMark(self, x, y):
         # check adjacent tiles
         for dx, dy in ADJACENT_TILES:
@@ -240,6 +236,23 @@ class MinesweeperEnv:
         self.setNumbers()
 
         self.TBVLabel.configure(text=f"3BV: {str(self.calcTBV())}")
+
+    def resetEnv(self):
+        pass
+
+    def won(self):
+        return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
+
+    def gameEnd(self, won: bool):
+        # game end condition
+        if won:
+            # store game stats as csv in gamesWon.json
+            pass
+        else:
+            # store game stats as csv in gamesLost.json
+            pass
+
+        self.resetEnv()
 
     def run(self):
         self.setup()
