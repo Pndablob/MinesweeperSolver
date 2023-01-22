@@ -89,12 +89,7 @@ class MinesweeperEnv:
     def leftClickWrapper(self, x, y):
         return lambda Button: self.leftClicked(self.tiles[x][y])
 
-        # button width: 42.9375 pixels
-        # button height: 38.8125 pixels
-
     def leftClicked(self, mb: MineButton):
-        print(f"({mb.x}, {mb.y}) left clicked")
-
         if not mb.isFlagged:
             if not mb.isRevealed and not mb.isMine():
                 mb.revealTile()
@@ -107,6 +102,7 @@ class MinesweeperEnv:
 
                 self.revealed += 1
                 if self.won():
+                    # win
                     self.gameEnd(True)
             elif mb.isMine():
                 if self.revealed == 0:
@@ -114,12 +110,21 @@ class MinesweeperEnv:
                     pass
                 else:
                     mb.revealTile()
+                    # lose
+                    self.gameEnd(False)
 
     def rightClickWrapper(self, x, y):
         return lambda Button: self.rightClicked(self.tiles[x][y])
 
     def rightClicked(self, mb: MineButton):
         print(f"({mb.x}, {mb.y}) right clicked")
+
+    def won(self):
+        return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
+
+    def gameEnd(self, won: bool):
+        # game end condition
+        pass
 
     def placeMines(self):
         randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
@@ -146,22 +151,6 @@ class MinesweeperEnv:
 
             if count != 0:
                 mb.num = count
-                #mb.showNumber()
-
-    def won(self):
-        return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
-
-    def gameEnd(self, won: bool):
-        # game end condition
-        pass
-
-        """
-    def showMines(self):
-        for x in range(self.LENGTH):
-            for y in range(self.HEIGHT):
-                if self.tiles[x][y].isMine():
-                    self.tiles[x][y].configure(text="*")
-                    """
 
     # calculate 3BV of the current minesweeper board
     def calcTBV(self):
