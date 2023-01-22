@@ -94,6 +94,9 @@ class MinesweeperEnv:
     def leftClickWrapper(self, x, y):
         return lambda Button: self.leftClicked(self.tiles[x][y])
 
+    def rightClickWrapper(self, x, y):
+        return lambda Button: self.rightClicked(self.tiles[x][y])
+
     def leftClicked(self, mb: MineButton):
         if not mb.isFlagged:
             if not mb.isRevealed and not mb.isMine():
@@ -119,12 +122,22 @@ class MinesweeperEnv:
                     mb.showNumber()
                     # lose
                     self.gameEnd(False)
+        # chording
+        elif mb.isRevealed:
+            print("attempted chording")
+            # count adjacent flags
+            c = 0
+            for dx, dy in ADJACENT_TILES:
+                if 0 <= mb.x + dx < self.LENGTH and 0 <= mb.y + dy < self.HEIGHT:
+                    if self.tiles[mb.x + dx][mb.y + dy].isFlagged:
+                        c += 1
+            if mb.num == c:
 
-    def rightClickWrapper(self, x, y):
-        return lambda Button: self.rightClicked(self.tiles[x][y])
+                for dx, dy in ADJACENT_TILES:
+                    if 0 <= mb.x + dx < self.LENGTH and 0 <= mb.y + dy < self.HEIGHT:
+                        self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
 
     def rightClicked(self, mb: MineButton):
-        print(f"({mb.x}, {mb.y}) right clicked")
         if not mb.isRevealed and not mb.isFlagged and self.mineCount > 0:
             mb.flagTile()
             self.mineCount -= 1
