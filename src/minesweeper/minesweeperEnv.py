@@ -192,6 +192,7 @@ class MinesweeperEnv:
             if count != 0:
                 mb.num = count
 
+    # calculate 3BV of the current minesweeper board
     def calcTBV(self):
         """
         Count3BV:
@@ -212,14 +213,12 @@ class MinesweeperEnv:
 
         for x, y in self.TILE_COORDINATES:
             mb = self.tiles[x][y]
-            # if already marked, continue
+
             if mb.isMarked:
                 continue
-            # if mine, mark and continue
             elif mb.isMine():
                 mb.isMarked = True
                 continue
-            # if an empty cell, mark, count for 3BV, and floodflill
             elif mb.num == 0:
                 mb.isMarked = True
                 tbv += 1
@@ -227,15 +226,12 @@ class MinesweeperEnv:
 
         for x, y in self.TILE_COORDINATES:
             mb = self.tiles[x][y]
-            # for each non-marked, non-mine cell add 1 to 3BV
             if not mb.isMarked:
                 tbv += 1
 
         return tbv
 
-    # calculate 3BV of the current minesweeper board
     def floodMark(self, x, y):
-        # check adjacent tiles
         for dx, dy in ADJACENT_TILES:
             # prevent out of bounds
             if 0 <= (x + dx) < self.LENGTH and 0 <= (y + dy) < self.HEIGHT:
@@ -245,7 +241,6 @@ class MinesweeperEnv:
                     continue
 
                 mb.isMarked = True
-                # if adjacent empty tile, recurse
                 if mb.num == 0:
                     self.floodMark(x + dx, y + dy)
 
