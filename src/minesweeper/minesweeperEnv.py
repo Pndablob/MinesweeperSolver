@@ -55,9 +55,9 @@ class MineButton(tk.Button):
 class MinesweeperEnv:
     def __init__(self, master=None):
         # game variables
-        self.MINES = 24
-        self.LENGTH = 5
-        self.HEIGHT = 5
+        self.MINES = 40
+        self.LENGTH = 16
+        self.HEIGHT = 16
 
         self.revealed = 0
         self.tbv = 0
@@ -253,7 +253,11 @@ class MinesweeperEnv:
         self.TBVLabel.configure(text=f"3BV: {str(self.tbv)}")
 
     def resetEnv(self):
-        pass
+        self.mineCount = self.MINES
+        self.time = 0
+        self.gameStarted = False
+
+        self.setup()
 
     def won(self):
         return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
