@@ -53,7 +53,7 @@ class MineButton(tk.Button):
 
 
 class MinesweeperEnv:
-    def __init__(self, master=None):
+    def __init__(self, epochs, master=None):
         # game variables
         self.MINES = 40
         self.LENGTH = 16
@@ -64,6 +64,11 @@ class MinesweeperEnv:
         self.mineCount = self.MINES
         self.gameStarted = False
         self.time = 0
+
+        self.epochCounter = 0
+        self.epochs = epochs
+        self.gamesWon = {"game"}
+        self.gamesLost = {"game"}
 
         self.TILE_COORDINATES = [[x, y] for x in range(self.LENGTH) for y in range(self.HEIGHT)]
 
@@ -264,16 +269,34 @@ class MinesweeperEnv:
 
     def gameEnd(self, won: bool):
         # gather stats
-        # tbv
+        # 3bv
+        self.tbv = self.tbv
+        # time
         self.time = time.time_ns() - self.time
+        # 3bv/s
+        # division by zero error
+        tbvPerSec = round(self.tbv / self.time, 4)
+        # efficiency
+        # clicks used / 3bv
 
-        # game end condition
+        # game stats as dict
+        currentGameStats = {"time": self.time, "3bv": self.tbv, "3bv/s": tbvPerSec}
+
+        # game end conditions
         if won:
             # store game stats as csv in gamesWon.json
-            pass
+            self.gamesWon.update(currentGameStats)
+            print(self.gamesWon)
         else:
             # store game stats as csv in gamesLost.json
-            pass
+            self.gamesLost.update(currentGameStats)
+            print(self.gamesLost)
+
+        if self.epochCounter == self.epochs:
+            with open("gamesWon.json", 'w') as f:
+                json.dump(self.gamesWon, f)
+            with open("gamesLost.json", 'w') as f:
+                json.dump(self.gamesLost, f)
 
         self.resetEnv()
 
@@ -291,6 +314,6 @@ if __name__ == '__main__':
     root.title('Minesweeper')
     root.geometry('850x625')
     root.resizable(False, False)
-    app = MinesweeperEnv(root)
+    app = MinesweeperEnv(100, root)
     app.run()
     root.mainloop()
