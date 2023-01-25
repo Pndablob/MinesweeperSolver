@@ -113,10 +113,10 @@ class MinesweeperEnv:
                 self.tiles[x][y] = b
 
     def leftClickWrapper(self, x, y):
-        return lambda Button: self.leftClicked(self.tiles[x][y])
+        return lambda button: self.leftClicked(self.tiles[x][y])
 
     def rightClickWrapper(self, x, y):
-        return lambda Button: self.rightClicked(self.tiles[x][y])
+        return lambda button: self.rightClicked(self.tiles[x][y])
 
     def leftClicked(self, mb: MineButton):
         self.leftClicks += 1
