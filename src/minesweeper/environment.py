@@ -121,6 +121,7 @@ class MinesweeperEnv:
     def leftClicked(self, mb: MineButton):
         self.leftClicks += 1
 
+        # start timer on first click
         if not self.gameStarted:
             self.gameStarted = True
             self.time = time.time()
@@ -137,10 +138,12 @@ class MinesweeperEnv:
                             self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
 
                 self.revealed += 1
+
                 if self.won():
                     # win
                     self.gameEnd(True)
             elif mb.isMine():
+                # first click safety
                 if self.revealed == 0:
                     # TODO: first click safety
                     pass
@@ -161,7 +164,7 @@ class MinesweeperEnv:
                     if self.tiles[mb.x + dx][mb.y + dy].isFlagged:
                         c += 1
             if mb.num == c:
-
+                # reveal surrounding tiles
                 for dx, dy in ADJACENT_TILES:
                     if 0 <= mb.x + dx < self.LENGTH and 0 <= mb.y + dy < self.HEIGHT:
                         self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
@@ -200,9 +203,10 @@ class MinesweeperEnv:
             if count != 0:
                 mb.num = count
 
-    # calculate 3BV of the current minesweeper board
     def calcTBV(self):
         """
+        Calculates the minimum number of clicks to solve the board (3BV)
+
         Count3BV:
             For each empty ("0") cell C:
                 If C has already been marked, continue.
