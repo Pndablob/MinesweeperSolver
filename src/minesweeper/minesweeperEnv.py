@@ -1,11 +1,11 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 
-import numpy as np
 import random
 import json
 import time
 
+# file constants
 ADJACENT_TILES = [[-1, -1], [0, -1], [-1, 0], [1, -1], [-1, 1], [0, 1], [1, 0], [1, 1]]
 
 BUTTON_CLICK = "<ButtonRelease-1>"
@@ -41,10 +41,10 @@ class MineButton(tk.Button):
         self.isRevealed = True
 
     def flagTile(self):
-        if not self.isFlagged:
+        if not self.isRevealed and not self.isFlagged:
             self.isFlagged = True
             self.configure(fg='#ff0000', text="Flag")
-        else:
+        elif self.isFlagged:
             self.isFlagged = False
             self.configure(fg="#000000", text="")
 
@@ -54,28 +54,29 @@ class MineButton(tk.Button):
 
 class MinesweeperEnv:
     def __init__(self, epochs, master=None):
-        # game variables
+        # class constants
         self.MINES = 40
         self.LENGTH = 16
         self.HEIGHT = 16
-
-        self.revealed = 0
-        self.tbv = 0
-        self.mineCount = self.MINES
-        self.gameStarted = False
-        self.time = 0
-
-        self.epochCounter = 0
-        self.epochs = epochs
-        self.gamesWon = {"game"}
-        self.gamesLost = {"game"}
-
         self.TILE_COORDINATES = [[x, y] for x in range(self.LENGTH) for y in range(self.HEIGHT)]
 
+        # game variables
         self.tiles = [[MineButton for _ in range(self.LENGTH)] for _ in range(self.HEIGHT)]
+        self.gameStarted = False
+        self.revealed = 0
+        self.tbv = 0
+        self.time = 0
+
+        # stat tracking variables
+        self.epochs = epochs
+        self.epochCounter = 0
+        self.leftClicks = 0
+        self.rightClicks = 0
+        self.gameStats = []
 
         # main ui
-        self.topLevel = ttk.Frame(master)
+        self.master = master
+        self.topLevel = ttk.Frame(self.master)
         self.topLevel.pack(anchor='nw')
 
         # minesweeper grid ui
@@ -95,7 +96,10 @@ class MinesweeperEnv:
         self.efficiencyLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='Efficiency:', anchor='w', justify='left')
         self.efficiencyLabel.grid(row=3, column=0, sticky='W')
 
-        # initialize mines as MineButton
+        self.initBoard()
+
+    # initialize tiles as MineButton instances
+    def initBoard(self):
         for x in range(0, self.LENGTH):
             for y in range(0, self.HEIGHT):
                 b = MineButton(self.gridFrame, x, y)
@@ -115,9 +119,11 @@ class MinesweeperEnv:
         return lambda Button: self.rightClicked(self.tiles[x][y])
 
     def leftClicked(self, mb: MineButton):
+        self.leftClicks += 1
+
         if not self.gameStarted:
             self.gameStarted = True
-            self.time = time.time_ns()
+            self.time = time.time()
 
         if not mb.isFlagged:
             if not mb.isRevealed and not mb.isMine():
@@ -136,7 +142,7 @@ class MinesweeperEnv:
                     self.gameEnd(True)
             elif mb.isMine():
                 if self.revealed == 0:
-                    # first click safety
+                    # TODO: first click safety
                     pass
                 else:
                     mb.configure(background='#ff0000')
@@ -144,7 +150,7 @@ class MinesweeperEnv:
                     # lose
                     self.gameEnd(False)
 
-        # ERROR
+        # TODO: fix error in chording
         # chording
         elif mb.isRevealed:
             print("attempted chording")
@@ -161,16 +167,13 @@ class MinesweeperEnv:
                         self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
 
     def rightClicked(self, mb: MineButton):
+        self.rightClicks += 1
+
         if not self.gameStarted:
             self.gameStarted = True
-            self.time = time.time_ns()
+            self.time = time.time()
 
-        if not mb.isRevealed and not mb.isFlagged and self.mineCount > 0:
-            mb.flagTile()
-            self.mineCount -= 1
-        elif mb.isFlagged:
-            mb.flagTile()
-            self.mineCount += 1
+        mb.flagTile()
 
     def placeMines(self):
         randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
@@ -258,9 +261,13 @@ class MinesweeperEnv:
         self.TBVLabel.configure(text=f"3BV: {str(self.tbv)}")
 
     def resetEnv(self):
-        self.mineCount = self.MINES
-        self.time = 0
+        self.initBoard()
+
         self.gameStarted = False
+        self.time = 0
+        self.revealed = 0
+        self.leftClicks = 0
+        self.rightClicks = 0
 
         self.setup()
 
@@ -268,52 +275,47 @@ class MinesweeperEnv:
         return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
 
     def gameEnd(self, won: bool):
-        # gather stats
+        # dump stats into json after training for n epochs
+        if self.epochCounter == self.epochs:
+            with open("statistics.json", 'r+') as f:
+                data = json.load(f)
+                for value in self.gameStats:
+                    data["statistics"].append(value)
+                f.seek(0)
+
+                json.dump(data, f, indent=4)
+
+            self.master.destroy()
+
+        # compile stats for this board
         # 3bv
-        self.tbv = self.tbv
+        # TODO: calculate 3bv of revealed tiles
         # time
-        self.time = time.time_ns() - self.time
+        self.time = round((time.time() - self.time), 3)
         # 3bv/s
-        # division by zero error
+        # TODO: division by zero error
         tbvPerSec = round(self.tbv / self.time, 4)
-        # efficiency
-        # clicks used / 3bv
+        # TODO: efficiency --> clicks used / 3bv (revealed or complete)
 
         # game stats as dict
-        currentGameStats = {"time": self.time, "3bv": self.tbv, "3bv/s": tbvPerSec}
+        currentGameStats = {"won": won, "time": self.time, "3bv": self.tbv, "3bv/s": tbvPerSec, "clicks": {"left": self.leftClicks, "right": self.rightClicks}}
 
-        # game end conditions
-        if won:
-            # store game stats as csv in gamesWon.json
-            self.gamesWon.update(currentGameStats)
-            print(self.gamesWon)
-        else:
-            # store game stats as csv in gamesLost.json
-            self.gamesLost.update(currentGameStats)
-            print(self.gamesLost)
-
-        if self.epochCounter == self.epochs:
-            with open("gamesWon.json", 'w') as f:
-                json.dump(self.gamesWon, f)
-            with open("gamesLost.json", 'w') as f:
-                json.dump(self.gamesLost, f)
+        self.gameStats.append(currentGameStats)
 
         self.resetEnv()
+
+        self.epochCounter += 1
 
     def run(self):
         self.setup()
 
-        for r in self.tiles:
-            print(np.matrix([mb.num for mb in r]))
-
-        print([[mb.num for mb in self.tiles[y]] for y in range(len(self.tiles))])
-
 
 if __name__ == '__main__':
+    print(time.time())
     root = tk.Tk()
     root.title('Minesweeper')
     root.geometry('850x625')
     root.resizable(False, False)
-    app = MinesweeperEnv(100, root)
+    app = MinesweeperEnv(5, root)
     app.run()
     root.mainloop()
