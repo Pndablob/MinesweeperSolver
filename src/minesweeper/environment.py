@@ -85,7 +85,7 @@ class MinesweeperEnv:
 
         # stats ui
         self.statsFrame = tk.LabelFrame(self.topLevel, font='{Ariel} 14 {bold}', text='Statistics')
-        self.statsFrame.pack(side='right', expand=True, fill='both', padx=20)
+        self.statsFrame.pack(side='right', expand=True, fill='both', padx=5, ipadx=15)
 
         self.timeLabel = ttk.Label(self.statsFrame, font="{Comic Sans} 10 {bold}", text='Time:', anchor='w', justify='left')
         self.timeLabel.grid(row=0, column=0, sticky='W')
@@ -113,14 +113,14 @@ class MinesweeperEnv:
                 self.tiles[x][y] = b
 
     def leftClickWrapper(self, x, y):
+        self.leftClicks += 1
         return lambda button: self.leftClicked(self.tiles[x][y])
 
     def rightClickWrapper(self, x, y):
+        self.rightClicks += 1
         return lambda button: self.rightClicked(self.tiles[x][y])
 
     def leftClicked(self, mb: MineButton):
-        self.leftClicks += 1
-
         # start timer on first click
         if not self.gameStarted:
             self.gameStarted = True
@@ -170,8 +170,6 @@ class MinesweeperEnv:
                         self.leftClicked(self.tiles[mb.x + dx][mb.y + dy])
 
     def rightClicked(self, mb: MineButton):
-        self.rightClicks += 1
-
         if not self.gameStarted:
             self.gameStarted = True
             self.time = time.time()
@@ -257,6 +255,8 @@ class MinesweeperEnv:
                     self.floodMark(x + dx, y + dy)
 
     def setup(self):
+        self.master.title(f"Minesweeper ({self.epochCounter + 1}/{self.epochs})")
+
         self.placeMines()
         self.setNumbers()
 
@@ -306,20 +306,19 @@ class MinesweeperEnv:
 
         self.gameStats.append(currentGameStats)
 
-        self.resetEnv()
-
         self.epochCounter += 1
+
+        self.resetEnv()
 
     def run(self):
         self.setup()
 
 
 if __name__ == '__main__':
-    print(time.time())
     root = tk.Tk()
     root.title('Minesweeper')
     root.geometry('850x625')
     root.resizable(False, False)
-    app = MinesweeperEnv(5, root)
+    app = MinesweeperEnv(10, root)
     app.run()
     root.mainloop()
