@@ -53,7 +53,7 @@ class MineButton(tk.Button):
 
 
 class MinesweeperEnv:
-    def __init__(self, epochs, master=None):
+    def __init__(self, master=None):
         # class constants
         self.MINES = 40
         self.LENGTH = 16
@@ -68,8 +68,6 @@ class MinesweeperEnv:
         self.time = 0
 
         # stat tracking variables
-        self.epochs = epochs
-        self.epochCounter = 0
         self.leftClicks = 0
         self.rightClicks = 0
         self.gameStats = []
@@ -177,8 +175,11 @@ class MinesweeperEnv:
         mb.flagTile()
 
     def placeMines(self):
-        randList = [divmod(i, self.HEIGHT) for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
+        # generate random coordinates for mines
+        randList = [divmod(i, self.HEIGHT)
+                    for i in random.sample(range(self.LENGTH * self.HEIGHT), self.MINES)]
 
+        # set as mine
         for x, y in randList:
             mb = self.tiles[x][y]
             mb.num = -1
@@ -255,8 +256,6 @@ class MinesweeperEnv:
                     self.floodMark(x + dx, y + dy)
 
     def setup(self):
-        self.master.title(f"Minesweeper ({self.epochCounter + 1}/{self.epochs})")
-
         self.placeMines()
         self.setNumbers()
 
@@ -279,18 +278,6 @@ class MinesweeperEnv:
         return self.revealed == self.LENGTH * self.HEIGHT - self.MINES
 
     def gameEnd(self, won: bool):
-        # dump stats into json after training for n epochs
-        if self.epochCounter == self.epochs:
-            with open("statistics.json", 'r+') as f:
-                data = json.load(f)
-                for value in self.gameStats:
-                    data["statistics"].append(value)
-                f.seek(0)
-
-                json.dump(data, f, indent=4)
-
-            self.master.destroy()
-
         # compile stats for this board
         # 3bv
         # TODO: calculate 3bv of revealed tiles
@@ -306,7 +293,14 @@ class MinesweeperEnv:
 
         self.gameStats.append(currentGameStats)
 
-        self.epochCounter += 1
+        # dump stats into json after each episode
+        with open("statistics.json", 'r+') as f:
+            data = json.load(f)
+            for value in self.gameStats:
+                data["statistics"].append(value)
+            f.seek(0)
+
+            json.dump(data, f, indent=4)
 
         self.resetEnv()
 
@@ -319,6 +313,6 @@ if __name__ == '__main__':
     root.title('Minesweeper')
     root.geometry('850x625')
     root.resizable(False, False)
-    app = MinesweeperEnv(10, root)
+    app = MinesweeperEnv(root)
     app.run()
     root.mainloop()
