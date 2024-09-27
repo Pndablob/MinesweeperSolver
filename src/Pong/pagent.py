@@ -1,3 +1,5 @@
+# Author: Shiva Verma
+
 from ppaddle import Paddle
 
 import random
